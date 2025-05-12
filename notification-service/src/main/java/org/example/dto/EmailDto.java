@@ -37,11 +37,11 @@ public class EmailDto {
         this.subject = subject;
     }
 
-    public @Email @NotBlank String getEmail() {
+    public String getEmail() {
         return email;
     }
 
-    public void setEmail(@Email @NotBlank String email) {
+    public void setEmail(String email) {
         this.email = email;
     }
 }
