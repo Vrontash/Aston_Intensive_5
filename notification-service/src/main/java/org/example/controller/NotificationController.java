@@ -1,5 +1,6 @@
 package org.example.controller;
 
+import jakarta.validation.Valid;
 import org.example.dto.EmailDto;
 import org.example.service.NotificationService;
 import org.springframework.http.HttpStatus;
@@ -18,7 +19,7 @@ public class NotificationController {
     }
 
     @PostMapping("/email")
-    public ResponseEntity<?> sendEmail(@RequestBody EmailDto emailDto){
+    public ResponseEntity<?> sendEmail(@Valid @RequestBody EmailDto emailDto){
         notificationService.sendEmail(emailDto);
         return ResponseEntity.status(HttpStatus.OK).body("Email was sent to " + emailDto.getEmail());
     }
