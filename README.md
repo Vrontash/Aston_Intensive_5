@@ -2,7 +2,7 @@
 
 # <a name="RU"></a>Требования к запуску проекта
 Проект состоит из 2 микросервисов, которые должны быть запущены параллельно с помощью их собственных
-App классов в src.main.hava.org.example для корректной работы проекта.
+App классов в src.main.java.org.example для корректной работы проекта.
 ## Notification-service:
  - Необходим Docker для запуска Kafka. Работоспособность программы была проверена с использованием Docker Desktop
  - Для запуска Kafka(3.6.1) проделать следующие шаги:
@@ -43,7 +43,7 @@ App classes in src.main.java.org.example for the correct operation of the projec
 - - Change the mail host if Gmail is not your used mail```spring.mail.host=smtp.gmail.com ```
 ## User-service:
 - Create DB. The program was tested using DB created in pgAdmin4
-- Fill in missing parts in hibernate.properties located in src.main.resources to access your DB:
+- Fill in missing parts in application.properties located in src.main.resources to access your DB:
     - Location of your created DB ```spring.datasource.url:```\
       Example: ```spring.datasource.url: = jdbc:postgresql://localhost:5432/Users```
     - DB User's name ```spring.datasource.username```
