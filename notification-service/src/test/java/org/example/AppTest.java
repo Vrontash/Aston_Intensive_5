@@ -1,38 +1,114 @@
 package org.example;
 
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
+import com.icegreen.greenmail.util.GreenMail;
+import com.icegreen.greenmail.util.ServerSetup;
+import jakarta.mail.internet.MimeMessage;
+import org.example.dto.EmailDto;
+import org.junit.jupiter.api.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.http.*;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.test.context.EmbeddedKafka;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.ActiveProfiles;
 
-/**
- * Unit test for simple App.
- */
-public class AppTest 
-    extends TestCase
-{
-    /**
-     * Create the test case
-     *
-     * @param testName name of the test case
-     */
-    public AppTest( String testName )
-    {
-        super( testName );
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.*;
+
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@DirtiesContext
+@EmbeddedKafka
+@ActiveProfiles("test")
+class AppTest {
+    @Autowired
+    private KafkaTemplate<String, String> kafkaTemplate;
+
+    private GreenMail greenMail;
+
+    @Autowired
+    private TestRestTemplate testRestTemplate;
+
+    @BeforeEach
+    void setup() {
+        greenMail = new GreenMail(new ServerSetup(3025, null, "smtp"));
+        greenMail.start();
+    }
+    @AfterEach
+    void tearDown() {
+        greenMail.stop();
     }
 
-    /**
-     * @return the suite of tests being tested
-     */
-    public static Test suite()
-    {
-        return new TestSuite( AppTest.class );
+    @Test
+    void sending_user_created_event_and_email_is_successful() throws Exception {
+        kafkaTemplate.send("user-events", "user-created", "test@test.ru");
+        greenMail.waitForIncomingEmail(10000, 1);
+        MimeMessage[] messages = greenMail.getReceivedMessages();
+
+        assertTrue(messages.length > 0);
+        assertTrue(messages[0].getContent().toString().contains("Здравствуйте! Ваш аккаунт на сайте ваш сайт был успешно создан."));
     }
 
-    /**
-     * Rigourous Test :-)
-     */
-    public void testApp()
-    {
-        assertTrue( true );
+    @Test
+    void sending_user_deleted_event_and_email_is_successful() throws Exception {
+        kafkaTemplate.send("user-events", "user-deleted", "test@test.ru");
+        greenMail.waitForIncomingEmail(10000, 1);
+        MimeMessage[] messages = greenMail.getReceivedMessages();
+
+        assertTrue(messages.length > 0);
+        assertTrue(messages[0].getContent().toString().contains("Здравствуйте! Ваш аккаунт был удалён."));
+    }
+
+    @Test
+    void sendEmail_controller_request_with_valid_data_is_successful() throws Exception {
+        EmailDto emailDto = new EmailDto("test@test.ru", "testM", "testS");
+
+        ResponseEntity<String> response = testRestTemplate.postForEntity( "/email", emailDto, String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isEqualTo("Email was sent to " + emailDto.getEmail());
+
+        greenMail.waitForIncomingEmail(10000, 1);
+        MimeMessage[] messages = greenMail.getReceivedMessages();
+
+        assertEquals(1, messages.length);
+        assertThat(messages[0].getAllRecipients()[0].toString()).isEqualTo(emailDto.getEmail());
+        assertThat(messages[0].getSubject()).isEqualTo(emailDto.getSubject());
+        assertThat(messages[0].getContent().toString()).contains(emailDto.getMessage());
+    }
+    @Test
+    void sendEmail_controller_request_with_empty_data_is_prohibited() {
+        EmailDto emailDto = new EmailDto("", "", "");
+
+        ResponseEntity<String> response = testRestTemplate.postForEntity( "/email", emailDto, String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody())
+                                    .contains("Email is required")
+                                    .contains("Message is required");
+        assertThat(greenMail.getReceivedMessages()).isEmpty();
+    }
+    @Test
+    void sendEmail_controller_request_with_null_data_is_prohibited() {
+        EmailDto emailDto = new EmailDto(null, null, null);
+
+        ResponseEntity<String> response = testRestTemplate.postForEntity( "/email", emailDto, String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody())
+                                    .contains("Email is required")
+                                    .contains("Message is required");
+        assertThat(greenMail.getReceivedMessages()).isEmpty();
+    }
+    @Test
+    void sendEmail_controller_request_with_invalid_email_is_prohibited() {
+        EmailDto emailDto = new EmailDto("invalidEmail", "testM", "testS");
+
+        ResponseEntity<String> response = testRestTemplate.postForEntity( "/email", emailDto, String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).contains("Invalid Email");
+        assertThat(greenMail.getReceivedMessages()).isEmpty();
     }
 }
