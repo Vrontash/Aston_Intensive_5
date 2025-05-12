@@ -1,6 +1,8 @@
 ### [EN](#EN) | [RU](#RU)
 
 # <a name="RU"></a>Требования к запуску проекта
+Проект состоит из 2 микросервисов, которые должны быть запущены параллельно с помощью их собственных
+App классов в src.main.hava.org.example для корректной работы проекта.
 ## Notification-service:
  - Необходим Docker для запуска Kafka. Работоспособность программы была проверена с использованием Docker Desktop
  - Для запуска Kafka(3.6.1) проделать следующие шаги:
@@ -28,6 +30,8 @@
  - Написать интеграционные тесты для проверки отправки сообщения на почту.
 
 # <a name="EN"></a>Requirements for project to run
+The project consists of 2 microservices that should be run in parallel using their own
+App classes in src.main.java.org.example for the correct operation of the project.
 ## Notification-service:
 - Docker is required to run Kafka. The program was tested using Docker Desktop
 - To launch Kafka(3.6.1), follow these steps:
